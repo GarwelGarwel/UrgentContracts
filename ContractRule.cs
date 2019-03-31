@@ -97,7 +97,6 @@ namespace UrgentContracts
         public static CelestialBody GetTargetBody(Contract c)
         {
             Type t = c.GetType();
-            bool checkTitle = false;
             try
             {
                 if (t == typeof(CollectScience))
@@ -126,21 +125,17 @@ namespace UrgentContracts
                     return null;
                 else if (t == typeof(ExplorationContract))
                     return typeof(ExplorationContract).GetFields(BindingFlags.NonPublic | BindingFlags.Instance)[1].GetValue((ExplorationContract)c) as CelestialBody;
-                else
-                    checkTitle = true;
             }
-            catch (Exception e)
-            {
-                Core.Log("Exception " + e + " when detecting CelestialBody of contract " + c.Title + ".", Core.LogLevel.Error);
-                return null;
-            }
+            catch (Exception e) { Core.Log("Exception " + e + " when detecting CelestialBody of contract '" + c.Title + "'.", Core.LogLevel.Error); }
 
-            if (checkTitle)
-            {
-                Core.Log("Couldn't detect CelestialBody from contract parameters, trying to find its name in the title (" + c.Title + ").");
-                foreach (CelestialBody b in FlightGlobals.Bodies)
-                    if (new System.Text.RegularExpressions.Regex("\b" + b.displayName + "\b").IsMatch(c.Title)) return b;
-            }
+            // Uknown contract type => look for body name in the title
+            Core.Log("Couldn't detect CelestialBody from contract parameters, trying to find its name in the title (" + c.Title + ") or description.");
+            foreach (CelestialBody b in FlightGlobals.Bodies)
+                if (new System.Text.RegularExpressions.Regex("\\b" + b.name + "\\b").IsMatch(c.Title)) return b;
+
+            // No body name in title => look for it in the description
+            foreach (CelestialBody b in FlightGlobals.Bodies)
+                if (new System.Text.RegularExpressions.Regex("\\b" + b.name + "\\b").IsMatch(c.Description)) return b;
 
             Core.Log("CelestialBody could not be detected.");
             return null;
@@ -148,11 +143,12 @@ namespace UrgentContracts
 
         public ContractRule() { }
         public ContractRule(Type type) => Type = type;
-        public ContractRule(Type type, double minDeadline, double maxDeadline, PrecisionType precision = PrecisionType.Default)
+        public ContractRule(Type type, double minDeadline, double maxDeadline, double bodyTravelTimeMultiplier = 1, PrecisionType precision = PrecisionType.Default)
         {
             Type = type;
             MinDeadline = minDeadline;
-            MaxDeadline = maxDeadline;
+            MaxDeadline = Math.Max(MinDeadline, maxDeadline);
+            BodyTravelTimeMultiplier = bodyTravelTimeMultiplier;
             Precision = precision;
         }
     }

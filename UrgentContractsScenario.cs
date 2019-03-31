@@ -16,8 +16,8 @@ namespace UrgentContracts
             if (!Core.Loaded) Core.LoadConfig();
 
             contractRules = new List<ContractRule>();
-            contractRules.Add(new ContractRule(typeof(SurveyContract), 21600, 21600, ContractRule.PrecisionType.Hours));
-            contractRules.Add(new ContractRule(typeof(PartTest), 21600, 21600, ContractRule.PrecisionType.Hours));
+            contractRules.Add(new ContractRule(typeof(SurveyContract), 21600, 21600, 1, ContractRule.PrecisionType.Hours));
+            contractRules.Add(new ContractRule(typeof(PartTest), 21600, 21600, 1, ContractRule.PrecisionType.Hours));
 
             GameEvents.Contract.onContractsListChanged.Add(OnContractsListChanged);
         }
