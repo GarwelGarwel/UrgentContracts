@@ -51,7 +51,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="UrgentContractScenario.cs" />
+    <Compile Include="ContractRule.cs" />
+    <Compile Include="Core.cs" />
+    <Compile Include="UrgentContractsScenario.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
