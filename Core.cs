@@ -16,12 +16,13 @@ namespace UrgentContracts
             Log("Loading config...", LogLevel.Important);
 
             BodyTravelTimes = new Dictionary<CelestialBody, double>(FlightGlobals.Bodies.Count);
+            CelestialBody homePlanet = GetPlanet(Planetarium.fetch.Home);
             foreach (CelestialBody body in FlightGlobals.Bodies)
             {
                 if (body.isHomeWorld) BodyTravelTimes[body] = 0;
-                else if (body == Planetarium.fetch.Sun) BodyTravelTimes[body] = 100;
-                else if (body.HasParent(Planetarium.fetch.Home)) BodyTravelTimes[body] = body.orbit.period / 6;
-                else BodyTravelTimes[body] = HohmannTransferTime(GetPlanet(Planetarium.fetch.Home).orbit, GetPlanet(body).orbit);
+                else if (body == Planetarium.fetch.Sun) BodyTravelTimes[body] = homePlanet.orbit.period;
+                else if (body.HasParent(homePlanet)) BodyTravelTimes[body] = body.orbit.period / 5;
+                else BodyTravelTimes[body] = TimeBetweenLaunchWindows(homePlanet.orbit, GetPlanet(body).orbit) + HohmannMultiplier * HohmannTransferTime(homePlanet.orbit, GetPlanet(body).orbit);
                 Core.Log("Travel time for " + body.name + " is " + KSPUtil.PrintDateDeltaCompact(BodyTravelTimes[body], true, false), LogLevel.Important);
             }
 
@@ -30,7 +31,40 @@ namespace UrgentContracts
 
         public static Dictionary<CelestialBody, double> BodyTravelTimes { get; set; }
 
+        /// <summary>
+        /// Max allowed difference between max and min deadlines (0.5 = 50% etc.)
+        /// </summary>
+        public static double RandomFactor { get; set; } = 0.5;
+
+        /// <summary>
+        /// Multiply Hohmann transfer time by this for min travel time
+        /// </summary>
+        public static double HohmannMultiplier { get; set; } = 1.2;
+
         public static bool IsPlanet(CelestialBody body) => body?.orbit?.referenceBody == Sun.Instance.sun;
+
+        /// <summary>
+        /// Returns average time between two Hohmann transfer windows between two planets
+        /// </summary>
+        /// <param name="o1"></param>
+        /// <param name="o2"></param>
+        /// <returns></returns>
+        public static double TimeBetweenLaunchWindows(Orbit o1, Orbit o2)
+        {
+            double pMin, pMax;
+            if (o1.period < o2.period)
+            {
+                pMin = o1.period;
+                pMax = o2.period;
+            }
+            else
+            {
+                pMin = o2.period;
+                pMax = o1.period;
+            }
+            if (pMin == pMax) return 0;  // Periods are the same, so now Hohmann transfer possible
+            return pMin / (1 - pMin / pMax);
+        }
 
         public static double HohmannTransferTime(Orbit o1, Orbit o2) => Math.PI * Math.Sqrt(Math.Pow(o1.radius + o2.radius, 3) / (8 * Planetarium.fetch.Sun.gravParameter));
 
