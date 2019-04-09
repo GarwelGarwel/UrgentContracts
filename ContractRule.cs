@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 using FinePrint.Contracts;
 using FinePrint.Contracts.Parameters;
@@ -9,83 +10,61 @@ namespace UrgentContracts
 {
     public class ContractRule
     {
-        public enum PrecisionType { Default, Seconds, Minutes, Hours, Days }
-        PrecisionType Precision { get; set; } = PrecisionType.Default;
-
         /// <summary>
         /// Type of the contract class
         /// </summary>
-        public Type Type { get; set; }
+        public List<string> Types { get; set; } = new List<string>();
+
+        public void AddTypes(string types)
+        {
+            string[] parts = types.Split(", ".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+            foreach (string part in parts) Types.Add(part);
+        }
 
         /// <summary>
         /// Checks if this rule should apply to Contract c
         /// </summary>
         /// <param name="c"></param>
         /// <returns></returns>
-        public bool AppliesTo(Contract c) => c.GetType() == Type;
-
-        /// <summary>
-        /// Min # of seconds for deadline
-        /// </summary>
-        public double MinDeadline { get; set; }
-
-        /// <summary>
-        /// Max # of seconds for deadline
-        /// </summary>
-        public double MaxDeadline { get; set; }
-
-        /// <summary>
-        /// Min # of days for deadline
-        /// </summary>
-        public int MinDays
-        {
-            get => (int) MinDeadline / 21600;
-            set => MinDeadline = value * 21600;
-        }
-
-        /// <summary>
-        /// Max # of days for deadline
-        /// </summary>
-        public int MaxDays
-        {
-            get => (int)MaxDeadline / 21600;
-            set => MaxDeadline = value * 21600;
-        }
+        public bool AppliesTo(Contract c) => Types.Exists(x => x.Equals(c.GetType().Name.ToString(), StringComparison.CurrentCultureIgnoreCase));
+            
+        public double GracePeriod { get; set; } = 21600;
 
         /// <summary>
         /// How much time is added to deadline based on body travel time (0 if no travel needed, 1 for one-way, 2 for return)
         /// </summary>
-        public double BodyTravelTimeMultiplier { get; set; } = 1;
-
-        public static double GetBodyTravelTime(CelestialBody b) => (b != null) ? Core.BodyTravelTimes[b] : 0;
-
-        public double GetMinDeadline(Contract c) => MinDeadline + BodyTravelTimeMultiplier * GetBodyTravelTime(GetTargetBody(c));
-        public double GetMaxDeadline(Contract c) => MaxDeadline + BodyTravelTimeMultiplier * GetBodyTravelTime(GetTargetBody(c));
+        public double TravelTimeMultiplier { get; set; } = 1;
 
         /// <summary>
-        /// Checks if Contract c needs its deadlines changed to conform to this rule
+        /// Fetches travel time for current body from cache (or 0 if no b is null)
+        /// </summary>
+        /// <param name="b"></param>
+        /// <returns></returns>
+        public static double GetTravelTime(CelestialBody b) => (b != null) ? Core.BodyTravelTimes[b] : 0;
+
+        /// <summary>
+        /// Returns min allowed deadline for this contract (including grace period and travel time)
         /// </summary>
         /// <param name="c"></param>
         /// <returns></returns>
-        public bool NeedsAdjustment(Contract c) => (c.TimeDeadline < GetMinDeadline(c)) || (c.TimeDeadline > GetMaxDeadline(c));
+        public double GetMinDeadline(Contract c) => GracePeriod + TravelTimeMultiplier * GetTravelTime(GetTargetBody(c));
 
-        /// <summary>
-        /// Returns a random deadline between MinDeadline and MaxDeadline, rounded to Precision
-        /// </summary>
-        /// <returns></returns>
-        public double GetDeadline(Contract c)
+        public bool CheckAndApply(Contract c, double chance = 1)
         {
-            double d = GetMinDeadline(c) + Core.rand.NextDouble() * (GetMaxDeadline(c) - GetMinDeadline(c));
-            double m = 1;
-            switch (Precision)
+            double minDeadline = GetMinDeadline(c);
+            double d = c.TimeDeadline / minDeadline;
+            if (((d < 1) || (d > 1 + Core.RandomFactor)) && (Core.rand.NextDouble() < chance))
             {
-                case PrecisionType.Default: return d;
-                case PrecisionType.Seconds: return Math.Round(d);
-                case PrecisionType.Minutes: m = 60; break;
-                case PrecisionType.Hours: m = 3600; break;
-                case PrecisionType.Days: m = 21600; break;
+                d = minDeadline * (1 + Core.rand.NextDouble() * Core.RandomFactor);
+                double m = 1;
+                if (d >= 21600) m = 60;
+                if (d >= 21600 * 10) m = 3600;
+                if (d >= 21600 * 426) m = 21600;
+                d = Math.Round(d / m) * m;
+                c.TimeDeadline = d;
+                return true;
             }
-            return Math.Round(d / m) * m;
+            else return false;
         }
 
         /// <summary>
@@ -141,15 +120,35 @@ namespace UrgentContracts
             return null;
         }
 
-        public ContractRule() { }
-        public ContractRule(Type type) => Type = type;
-        public ContractRule(Type type, double minDeadline, double maxDeadline, double bodyTravelTimeMultiplier = 1, PrecisionType precision = PrecisionType.Default)
+        public override string ToString()
         {
-            Type = type;
-            MinDeadline = minDeadline;
-            MaxDeadline = Math.Max(MinDeadline, maxDeadline);
-            BodyTravelTimeMultiplier = bodyTravelTimeMultiplier;
-            Precision = precision;
+            string res = "Types = { ";
+            bool needComma = false;
+            foreach (string t in Types)
+            {
+                if (needComma) res += ", ";
+                res += t;
+                needComma = true;
+            }
+            res += " } GracePeriod = '" + KSPUtil.PrintDateDeltaCompact(GracePeriod, true, false) + "' TravelTimeMultiplier = " + TravelTimeMultiplier.ToString("N1");
+            return res;
+        }
+
+        public ContractRule() { }
+        public ContractRule(string type) => AddTypes(type);
+        public ContractRule(string type, double graceDays, double bodyTravelTimeMultiplier = 1)
+        {
+            AddTypes(type);
+            GracePeriod = graceDays * 21600;
+            TravelTimeMultiplier = bodyTravelTimeMultiplier;
+        }
+
+        public ContractRule(ConfigNode node)
+        {
+            foreach (string v in node.GetValues("Type"))
+                AddTypes(v);
+            GracePeriod = node.HasValue("GraceTime") ? Core.GetDouble(node, "GraceTime") : (Core.GetDouble(node, "GraceDays") * 21600);
+            TravelTimeMultiplier = Core.GetDouble(node, "TravelTimeMultiplier", 1);
         }
     }
 }

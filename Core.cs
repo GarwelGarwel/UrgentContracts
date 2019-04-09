@@ -9,10 +9,11 @@ namespace UrgentContracts
     /// </summary>
     public class Core
     {
-        public static bool Loaded = false;
+        static bool loaded = false;
 
         public static void LoadConfig()
         {
+            if (loaded) return;
             Log("Loading config...", LogLevel.Important);
 
             BodyTravelTimes = new Dictionary<CelestialBody, double>(FlightGlobals.Bodies.Count);
@@ -26,8 +27,30 @@ namespace UrgentContracts
                 Core.Log("Travel time for " + body.name + " is " + KSPUtil.PrintDateDeltaCompact(BodyTravelTimes[body], true, false), LogLevel.Important);
             }
 
-            Loaded = true;
+            ConfigNode[] cfgArray = GameDatabase.Instance.GetConfigNodes("URGENT_CONTRACTS_CONFIG");
+            foreach (ConfigNode cfg in cfgArray)
+            {
+                foreach (ConfigNode n in cfg.GetNodes("CONTRACT_RULE"))
+                {
+                    ContractRule rule = new ContractRule(n);
+                    ContractRules.Add(rule);
+                    Core.Log("Added contract from config file: " + rule, LogLevel.Important);
+                }
+
+                foreach (ConfigNode n in cfg.GetNodes("TRAVEL_TIME"))
+                {
+                    CelestialBody body = FlightGlobals.GetBodyByName(GetString(n, "Name"));
+                    if (body == null) continue;
+                    BodyTravelTimes[body] = n.HasValue("TravelTime") ? GetDouble(n, "TravelTime") : (GetDouble(n, "TravelDays") * 21600);
+                    Core.Log("Overriding travel time for " + body.name + " to be " + KSPUtil.PrintDateDeltaCompact(BodyTravelTimes[body], true, false), LogLevel.Important);
+                }
+            }
+            if (cfgArray.Length == 0) Core.Log("Config file not found!", LogLevel.Error);
+
+            loaded = true;
         }
+
+        public static List<ContractRule> ContractRules = new List<ContractRule>();
 
         public static Dictionary<CelestialBody, double> BodyTravelTimes { get; set; }
 

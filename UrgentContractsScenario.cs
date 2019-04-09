@@ -1,6 +1,4 @@
 ﻿using Contracts;
-using FinePrint.Contracts;
-using Contracts.Templates;
 using System.Collections.Generic;
 
 namespace UrgentContracts
@@ -8,58 +6,63 @@ namespace UrgentContracts
     [KSPScenario(ScenarioCreationOptions.AddToExistingCareerGames | ScenarioCreationOptions.AddToNewCareerGames, GameScenes.SPACECENTER)]
     public class UrgentContractsScenario : ScenarioModule
     {
-        List<ContractRule> contractRules;
-
         public void Start()
         {
             Core.Log("Start()");
-            if (!Core.Loaded) Core.LoadConfig();
-
-            contractRules = new List<ContractRule>();
-            contractRules.Add(new ContractRule(typeof(SurveyContract), 21600, 21600, 1, ContractRule.PrecisionType.Hours));
-            contractRules.Add(new ContractRule(typeof(PartTest), 21600, 21600, 1, ContractRule.PrecisionType.Hours));
-
-            GameEvents.Contract.onContractsListChanged.Add(OnContractsListChanged);
+            Core.LoadConfig();
+            GameEvents.Contract.onOffered.Add(OnContractOffered);
         }
 
         public void OnDisable()
         {
-            GameEvents.Contract.onContractsListChanged.Remove(OnContractsListChanged);
+            GameEvents.Contract.onOffered.Remove(OnContractOffered);
         }
 
         bool loaded = false;
         public void Update()
         {
-            if (!loaded && (ContractSystem.Instance.Contracts.Count > 0)) ProcessContracts();
+            if (!loaded) ProcessContracts();
         }
 
-        public void OnContractsListChanged()
+        public void OnContractOffered(Contract c)
         {
-            Core.Log("OnContractsListChanged()");
-            ProcessContracts();
+            Core.Log("OnContractOffered(" + c.GetType() + ")");
+            LogContractInfo(c);
+            ProcessContract(c);
+        }
+
+        void LogContractInfo(Contract c)
+        {
+            Core.Log("Title: " + c.Title);
+            Core.Log("Type: " + c.GetType().Name);
+            Core.Log("State: " + c.ContractState);
+            Core.Log("Target body: " + (ContractRule.GetTargetBody(c)?.name ?? "N/A"));
+            Core.Log("Deadline: " + KSPUtil.PrintDateDeltaCompact(c.TimeDeadline, true, true));
+        }
+
+        void ProcessContract(Contract c)
+        {
+            foreach (ContractRule rule in Core.ContractRules)
+                if (rule.AppliesTo(c))
+                    if (rule.CheckAndApply(c))
+                        Core.Log("Deadline for " + c.GetType().Name + " adjusted to " + KSPUtil.PrintDateDeltaCompact(c.TimeDeadline, true, true), Core.LogLevel.Important);
+                    else Core.Log("Deadline is fine.");
         }
 
         void ProcessContracts()
         {
-            Core.Log("UT: " + Planetarium.GetUniversalTime());
+            if (!ContractSystem.loaded)
+            {
+                Core.Log("ContractSystem not yet loaded.");
+                return;
+            }
             Core.Log(ContractSystem.Instance.Contracts.Count + " total contracts.", Core.LogLevel.Important);
             for (int i = 0; i < ContractSystem.Instance.Contracts.Count; i++)
             {
                 Contract c = ContractSystem.Instance.Contracts[i];
-                Core.Log("Title: " + c.Title);
-                Core.Log("Type: " + c.GetType());
-                Core.Log("State: " + c.ContractState);
-                Core.Log("Target body: " + (ContractRule.GetTargetBody(c)?.name ?? "N/A"));
-                Core.Log("Deadline: " + c.TimeDeadline + " (" + KSPUtil.PrintDateDeltaCompact(c.TimeDeadline, true, false) + ")");
-                foreach (ContractRule rule in contractRules)
-                    if (rule.AppliesTo(c))
-                        if (rule.NeedsAdjustment(c))
-                        {
-                            double d = rule.GetDeadline(c);
-                            c.TimeDeadline = d;
-                            Core.Log("Deadline adjusted to " + d + " (" + KSPUtil.PrintDateDeltaCompact(d, true, false) + ")");
-                        }
-                        else Core.Log("Deadline is fine.");
+                LogContractInfo(c);
+                if (c.ContractState == Contract.State.Offered)
+                    ProcessContract(c);
                 Core.Log("---");
             }
             loaded = true;
