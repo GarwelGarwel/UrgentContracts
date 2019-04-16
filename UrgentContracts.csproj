@@ -58,7 +58,9 @@
     <Compile Include="UrgentContractsSettings.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="GameData\UrgentContracts\LICENSE" />
     <None Include="GameData\UrgentContracts\UrgentContracts.cfg" />
+    <None Include="GameData\UrgentContracts\UrgentContracts.version" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
