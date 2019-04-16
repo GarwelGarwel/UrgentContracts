@@ -57,7 +57,7 @@ namespace UrgentContracts
         /// <summary>
         /// Max allowed difference between max and min deadlines (0.5 = 50% etc.)
         /// </summary>
-        public static double RandomFactor { get; set; } = 0.5;
+        //public static double RandomFactor { get; set; } = 0.5;
 
         /// <summary>
         /// Multiply Hohmann transfer time by this for min travel time
@@ -188,7 +188,7 @@ namespace UrgentContracts
         /// <summary>
         /// Current <see cref="LogLevel"/>: either Debug or Important
         /// </summary>
-        public static LogLevel Level => LogLevel.Debug; //DebugMode ? LogLevel.Debug : LogLevel.Important;
+        public static LogLevel Level => UrgentContractsSettings.DebugMode ? LogLevel.Debug : LogLevel.Important;
 
         /// <summary>
         /// Returns true if current logging allows logging of messages at messageLevel

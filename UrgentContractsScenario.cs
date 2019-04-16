@@ -33,6 +33,7 @@ namespace UrgentContracts
 
         void LogContractInfo(Contract c)
         {
+            if (!Core.IsLogging(Core.LogLevel.Debug)) return;
             Core.Log("Title: " + c.Title);
             Core.Log("Type: " + c.GetType().Name);
             Core.Log("State: " + c.ContractState);
@@ -44,9 +45,7 @@ namespace UrgentContracts
         {
             foreach (ContractRule rule in Core.ContractRules)
                 if (rule.AppliesTo(c))
-                    if (rule.CheckAndApply(c))
-                        Core.Log("Deadline for " + c.GetType().Name + " adjusted to " + KSPUtil.PrintDateDeltaCompact(c.TimeDeadline, true, true), Core.LogLevel.Important);
-                    else Core.Log("Deadline is fine.");
+                    rule.CheckAndApply(c);
         }
 
         void ProcessContracts()
