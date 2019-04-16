@@ -55,9 +55,10 @@
     <Compile Include="Core.cs" />
     <Compile Include="UrgentContractsScenario.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="UrgentContractsSettings.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="UrgentContracts.cfg" />
+    <None Include="GameData\UrgentContracts\UrgentContracts.cfg" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
