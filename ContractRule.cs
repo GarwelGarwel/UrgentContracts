@@ -5,6 +5,7 @@ using FinePrint.Contracts;
 using FinePrint.Contracts.Parameters;
 using Contracts;
 using Contracts.Templates;
+using System.Text.RegularExpressions;
 
 namespace UrgentContracts
 {
@@ -22,12 +23,32 @@ namespace UrgentContracts
         }
 
         /// <summary>
+        /// List of regex expressions that contract title should match
+        /// </summary>
+        public List<string> Titles { get; set; } = new List<string>();
+
+        /// <summary>
         /// Checks if this rule should apply to Contract c
         /// </summary>
         /// <param name="c"></param>
         /// <returns></returns>
-        public bool AppliesTo(Contract c) => Types.Exists(x => x.Equals(c.GetType().Name.ToString(), StringComparison.CurrentCultureIgnoreCase));
-            
+        public bool AppliesTo(Contract c)
+        {
+            bool r = Types.Exists(x => x.Equals(c.GetType().Name.ToString(), StringComparison.CurrentCultureIgnoreCase));
+            if ((r || (Types.Count == 0)) && (Titles.Count > 0))
+            {
+                foreach (string t in Titles)
+                    if (new Regex(t).IsMatch(c.Title))
+                    {
+                        Core.Log("Match found for '" + t + "'!");
+                        return true;
+                    }
+                    else Core.Log("No match for '" + t + "'.");
+                return false;
+            }
+            return r;
+        }
+        
         public double GracePeriod { get; set; } = 21600;
 
         /// <summary>
@@ -147,6 +168,8 @@ namespace UrgentContracts
         {
             foreach (string v in node.GetValues("Type"))
                 AddTypes(v);
+            foreach (string v in node.GetValues("Title"))
+                Titles.Add(v);
             GracePeriod = node.HasValue("GraceTime") ? Core.GetDouble(node, "GraceTime") : (Core.GetDouble(node, "GraceDays") * 21600);
             TravelTimeMultiplier = Core.GetDouble(node, "TravelTimeMultiplier", 1);
         }
