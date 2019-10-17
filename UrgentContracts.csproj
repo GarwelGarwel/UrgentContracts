@@ -69,5 +69,8 @@
     <None Include="GameData\UrgentContracts\UrgentContracts.version" />
     <None Include="README.md" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="GameData\UrgentContracts\UrgentContracts.dll" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
