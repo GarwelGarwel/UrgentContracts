@@ -19,7 +19,8 @@ namespace UrgentContracts
         public void AddTypes(string types)
         {
             string[] parts = types.Split(", ".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
-            foreach (string part in parts) Types.Add(part);
+            foreach (string part in parts)
+                Types.Add(part);
         }
 
         /// <summary>
@@ -68,7 +69,8 @@ namespace UrgentContracts
         /// </summary>
         /// <param name="c"></param>
         /// <returns></returns>
-        public double GetMinDeadline(Contract c) => GracePeriod + UrgentContractsSettings.Instance.AddGraceDays * 21600 + TravelTimeMultiplier * GetTravelTime(GetTargetBody(c));
+        public double GetMinDeadline(Contract c)
+            => GracePeriod + UrgentContractsSettings.Instance.AddGraceDays * 21600 + TravelTimeMultiplier * GetTravelTime(GetTargetBody(c));
 
         public void CheckAndApply(Contract c, double chance = 1)
         {
@@ -131,11 +133,13 @@ namespace UrgentContracts
             // Uknown contract type => look for body name in the title
             Core.Log("Couldn't detect CelestialBody from contract parameters, trying to find its name in the title (" + c.Title + ") or description.");
             foreach (CelestialBody b in FlightGlobals.Bodies)
-                if (new System.Text.RegularExpressions.Regex("\\b" + b.name + "\\b").IsMatch(c.Title)) return b;
+                if (new System.Text.RegularExpressions.Regex("\\b" + b.name + "\\b").IsMatch(c.Title))
+                    return b;
 
             // No body name in title => look for it in the description
             foreach (CelestialBody b in FlightGlobals.Bodies)
-                if (new System.Text.RegularExpressions.Regex("\\b" + b.name + "\\b").IsMatch(c.Description)) return b;
+                if (new System.Text.RegularExpressions.Regex("\\b" + b.name + "\\b").IsMatch(c.Description))
+                    return b;
 
             Core.Log("CelestialBody could not be detected.");
             return null;
@@ -147,7 +151,8 @@ namespace UrgentContracts
             bool needComma = false;
             foreach (string t in Types)
             {
-                if (needComma) res += ", ";
+                if (needComma)
+                    res += ", ";
                 res += t;
                 needComma = true;
             }

@@ -20,9 +20,12 @@ namespace UrgentContracts
             CelestialBody homePlanet = GetPlanet(Planetarium.fetch.Home);
             foreach (CelestialBody body in FlightGlobals.Bodies)
             {
-                if (body.isHomeWorld) BodyTravelTimes[body] = 0;
-                else if (body == Planetarium.fetch.Sun) BodyTravelTimes[body] = homePlanet.orbit.period;
-                else if (body.HasParent(homePlanet)) BodyTravelTimes[body] = body.orbit.period / 5;
+                if (body.isHomeWorld)
+                    BodyTravelTimes[body] = 0;
+                else if (body == Planetarium.fetch.Sun)
+                    BodyTravelTimes[body] = homePlanet.orbit.period;
+                else if (body.HasParent(homePlanet))
+                    BodyTravelTimes[body] = body.orbit.period / 5;
                 else BodyTravelTimes[body] = TimeBetweenLaunchWindows(homePlanet.orbit, GetPlanet(body).orbit) + HohmannMultiplier * HohmannTransferTime(homePlanet.orbit, GetPlanet(body).orbit);
                 Core.Log("Travel time for " + body.name + " is " + KSPUtil.PrintDateDeltaCompact(BodyTravelTimes[body], true, false), LogLevel.Important);
             }
@@ -40,12 +43,14 @@ namespace UrgentContracts
                 foreach (ConfigNode n in cfg.GetNodes("TRAVEL_TIME"))
                 {
                     CelestialBody body = FlightGlobals.GetBodyByName(GetString(n, "Name"));
-                    if (body == null) continue;
+                    if (body == null)
+                        continue;
                     BodyTravelTimes[body] = n.HasValue("TravelTime") ? GetDouble(n, "TravelTime") : (GetDouble(n, "TravelDays") * 21600);
                     Core.Log("Overriding travel time for " + body.name + " to be " + KSPUtil.PrintDateDeltaCompact(BodyTravelTimes[body], true, false), LogLevel.Important);
                 }
             }
-            if (cfgArray.Length == 0) Core.Log("Config file not found!", LogLevel.Error);
+            if (cfgArray.Length == 0)
+                Core.Log("Config file not found!", LogLevel.Error);
 
             loaded = true;
         }
@@ -85,13 +90,16 @@ namespace UrgentContracts
                 pMin = o2.period;
                 pMax = o1.period;
             }
-            if (pMin == pMax) return 0;  // Periods are the same, so now Hohmann transfer possible
+            if (pMin == pMax)
+                return 0;  // Periods are the same, so Hohmann transfer is impossible
             return pMin / (1 - pMin / pMax);
         }
 
-        public static double HohmannTransferTime(Orbit o1, Orbit o2) => Math.PI * Math.Sqrt(Math.Pow(o1.radius + o2.radius, 3) / (8 * Planetarium.fetch.Sun.gravParameter));
+        public static double HohmannTransferTime(Orbit o1, Orbit o2)
+            => Math.PI * Math.Sqrt(Math.Pow(o1.radius + o2.radius, 3) / (8 * Planetarium.fetch.Sun.gravParameter));
 
-        public static CelestialBody GetPlanet(CelestialBody body) => ((body == null) || IsPlanet(body)) ? body : GetPlanet(body?.orbit?.referenceBody);
+        public static CelestialBody GetPlanet(CelestialBody body)
+            => ((body == null) || IsPlanet(body)) ? body : GetPlanet(body?.orbit?.referenceBody);
 
         public static string GetString(ConfigNode n, string key, string defaultValue = null) => n.HasValue(key) ? n.GetValue(key) : defaultValue;
 
@@ -128,8 +136,10 @@ namespace UrgentContracts
         /// <returns></returns>
         public static string ParseUT(double time, bool showSeconds = true, int daysTimeLimit = -1)
         {
-            if (Double.IsNaN(time) || (time == 0)) return "—";
-            if (time > KSPUtil.dateTimeFormatter.Year * 10) return "10y+";
+            if (Double.IsNaN(time) || (time == 0))
+                return "—";
+            if (time > KSPUtil.dateTimeFormatter.Year * 10)
+                return "10y+";
             double t = time;
             int y, d, m, h;
             string res = "";
@@ -163,9 +173,11 @@ namespace UrgentContracts
                     t -= m * 60;
                     res += m + " m ";
                 }
-                if ((time < 60) || (showSeconds && (Math.Floor(t) > 0))) res += t.ToString("F0") + " s";
+                if ((time < 60) || (showSeconds && (Math.Floor(t) > 0)))
+                    res += t.ToString("F0") + " s";
             }
-            else if (time < KSPUtil.dateTimeFormatter.Day) res = "0 d";
+            else if (time < KSPUtil.dateTimeFormatter.Day)
+                res = "0 d";
             return res.TrimEnd();
         }
 
@@ -203,6 +215,9 @@ namespace UrgentContracts
         /// <param name="message">Text to log</param>
         /// <param name="messageLevel"><see cref="LogLevel"/> of the entry</param>
         public static void Log(string message, LogLevel messageLevel = LogLevel.Debug)
-        { if (IsLogging(messageLevel) && (message.Length != 0)) Debug.Log("[UrgentContracts] " + (messageLevel == LogLevel.Error ? "ERROR: " : "") + message); }
+        {
+            if (IsLogging(messageLevel) && (message.Length != 0))
+                Debug.Log("[UrgentContracts] " + (messageLevel == LogLevel.Error ? "ERROR: " : "") + message);
+        }
     }
 }

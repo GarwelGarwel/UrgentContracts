@@ -21,7 +21,8 @@ namespace UrgentContracts
         bool loaded = false;
         public void Update()
         {
-            if (!loaded) ProcessContracts();
+            if (!loaded)
+                ProcessContracts();
         }
 
         public void OnContractOffered(Contract c)
@@ -33,7 +34,8 @@ namespace UrgentContracts
 
         void LogContractInfo(Contract c)
         {
-            if (!Core.IsLogging(Core.LogLevel.Debug)) return;
+            if (!Core.IsLogging(Core.LogLevel.Debug))
+                return;
             Core.Log("Title: " + c.Title);
             Core.Log("Type: " + c.GetType().Name);
             Core.Log("State: " + c.ContractState);
