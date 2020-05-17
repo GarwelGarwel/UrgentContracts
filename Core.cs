@@ -7,7 +7,7 @@ namespace UrgentContracts
     /// <summary>
     /// Provides general static methods and fields for UrgentContracts
     /// </summary>
-    public class Core
+    public static class Core
     {
         static bool loaded = false;
 
@@ -188,7 +188,7 @@ namespace UrgentContracts
         /// <summary>
         /// Current <see cref="LogLevel"/>: either Debug or Important
         /// </summary>
-        public static LogLevel Level => UrgentContractsSettings.DebugMode ? LogLevel.Debug : LogLevel.Important;
+        public static LogLevel Level => UrgentContractsSettings.Instance.DebugMode ? LogLevel.Debug : LogLevel.Important;
 
         /// <summary>
         /// Returns true if current logging allows logging of messages at messageLevel
@@ -203,8 +203,6 @@ namespace UrgentContracts
         /// <param name="message">Text to log</param>
         /// <param name="messageLevel"><see cref="LogLevel"/> of the entry</param>
         public static void Log(string message, LogLevel messageLevel = LogLevel.Debug)
-        { if (IsLogging(messageLevel) && (message != "")) Debug.Log("[UrgentContracts] " + (messageLevel == LogLevel.Error ? "ERROR: " : "") + message); }
-
-        private Core() { }
+        { if (IsLogging(messageLevel) && (message.Length != 0)) Debug.Log("[UrgentContracts] " + (messageLevel == LogLevel.Error ? "ERROR: " : "") + message); }
     }
 }

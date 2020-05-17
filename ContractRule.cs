@@ -68,15 +68,15 @@ namespace UrgentContracts
         /// </summary>
         /// <param name="c"></param>
         /// <returns></returns>
-        public double GetMinDeadline(Contract c) => GracePeriod + UrgentContractsSettings.AddGraceDays * 21600 + TravelTimeMultiplier * GetTravelTime(GetTargetBody(c));
+        public double GetMinDeadline(Contract c) => GracePeriod + UrgentContractsSettings.Instance.AddGraceDays * 21600 + TravelTimeMultiplier * GetTravelTime(GetTargetBody(c));
 
         public void CheckAndApply(Contract c, double chance = 1)
         {
             double minDeadline = GetMinDeadline(c);
             double d = c.TimeDeadline / minDeadline;
-            if (((d < 1) || (d > 1 + UrgentContractsSettings.RandomFactor)) && (Core.rand.NextDouble() < chance))
+            if (((d < 1) || (d > 1 + UrgentContractsSettings.Instance.RandomFactor)) && (Core.rand.NextDouble() < chance))
             {
-                d = minDeadline * (1 + Core.rand.NextDouble() * UrgentContractsSettings.RandomFactor) + UrgentContractsSettings.AddGraceDays * 21600;
+                d = minDeadline * (1 + Core.rand.NextDouble() * UrgentContractsSettings.Instance.RandomFactor) + UrgentContractsSettings.Instance.AddGraceDays * 21600;
                 double m = 1;
                 if (d >= 21600) m = 60;
                 if (d >= 21600 * 10) m = 3600;
