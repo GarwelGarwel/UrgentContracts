@@ -1,11 +1,13 @@
 ﻿using Contracts;
-using System.Collections.Generic;
+using System.Linq;
 
 namespace UrgentContracts
 {
     [KSPScenario(ScenarioCreationOptions.AddToExistingCareerGames | ScenarioCreationOptions.AddToNewCareerGames, GameScenes.SPACECENTER)]
     public class UrgentContractsScenario : ScenarioModule
     {
+        bool loaded = false;
+
         public void Start()
         {
             Core.Log("Start()");
@@ -18,7 +20,6 @@ namespace UrgentContracts
             GameEvents.Contract.onOffered.Remove(OnContractOffered);
         }
 
-        bool loaded = false;
         public void Update()
         {
             if (!loaded)
@@ -34,20 +35,19 @@ namespace UrgentContracts
 
         void LogContractInfo(Contract c)
         {
-            if (!Core.IsLogging(Core.LogLevel.Debug))
+            if (!Core.IsLogging())
                 return;
             Core.Log("Title: " + c.Title);
             Core.Log("Type: " + c.GetType().Name);
             Core.Log("State: " + c.ContractState);
-            Core.Log("Target body: " + (ContractRule.GetTargetBody(c)?.name ?? "N/A"));
+            Core.Log("Target body: " + (c.GetTargetBody()?.name ?? "N/A"));
             Core.Log("Deadline: " + KSPUtil.PrintDateDeltaCompact(c.TimeDeadline, true, true));
         }
 
         void ProcessContract(Contract c)
         {
-            foreach (ContractRule rule in Core.ContractRules)
-                if (rule.AppliesTo(c))
-                    rule.CheckAndApply(c);
+            foreach (ContractRule rule in Core.ContractRules.Where(rule => rule.AppliesTo(c)))
+                rule.CheckAndApply(c);
         }
 
         void ProcessContracts()
@@ -57,7 +57,7 @@ namespace UrgentContracts
                 Core.Log("ContractSystem not yet loaded.");
                 return;
             }
-            Core.Log(ContractSystem.Instance.Contracts.Count + " total contracts.", Core.LogLevel.Important);
+            Core.Log(ContractSystem.Instance.Contracts.Count + " total contracts.", LogLevel.Important);
             for (int i = 0; i < ContractSystem.Instance.Contracts.Count; i++)
             {
                 Contract c = ContractSystem.Instance.Contracts[i];

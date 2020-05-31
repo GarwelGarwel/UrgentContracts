@@ -2,15 +2,6 @@
 {
     class UrgentContractsSettings : GameParameters.CustomParameterNode
     {
-        public override string Section => "UrgentContracts";
-        public override string DisplaySection => "Urgent Contracts";
-        public override string Title => "Urgent Contracts Settings";
-        public override int SectionOrder => 1;
-        public override GameParameters.GameMode GameMode => GameParameters.GameMode.CAREER;
-        public override bool HasPresets => false;
-
-        public static UrgentContractsSettings Instance => HighLogic.CurrentGame.Parameters.CustomParams<UrgentContractsSettings>();
-
         [GameParameters.CustomParameterUI("Mod Enabled", toolTip = "Turn Urgent Contracts on/off")]
         public bool ModEnabled = true;
 
@@ -22,5 +13,13 @@
 
         [GameParameters.CustomParameterUI("Debug Mode", toolTip = "Log everything to help Garwel see what the mod's doing wrong")]
         public bool DebugMode = false;
+
+        public static UrgentContractsSettings Instance => HighLogic.CurrentGame.Parameters.CustomParams<UrgentContractsSettings>();
+        public override string Section => "UrgentContracts";
+        public override string DisplaySection => "Urgent Contracts";
+        public override string Title => "Urgent Contracts Settings";
+        public override int SectionOrder => 1;
+        public override GameParameters.GameMode GameMode => GameParameters.GameMode.CAREER;
+        public override bool HasPresets => false;
     }
 }

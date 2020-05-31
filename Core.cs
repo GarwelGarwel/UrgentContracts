@@ -1,15 +1,51 @@
-﻿using System;
+﻿using Contracts;
+using Contracts.Templates;
+using FinePrint.Contracts;
+using FinePrint.Contracts.Parameters;
+using System;
 using System.Collections.Generic;
+using System.Reflection;
+using System.Text.RegularExpressions;
 using UnityEngine;
 
 namespace UrgentContracts
 {
     /// <summary>
+    /// Log levels:
+    /// <list type="bullet">
+    /// <item><definition>None: do not log</definition></item>
+    /// <item><definition>Error: log only errors</definition></item>
+    /// <item><definition>Important: log only errors and important information</definition></item>
+    /// <item><definition>Debug: log all information</definition></item>
+    /// </list>
+    /// </summary>
+    public enum LogLevel { None = 0, Error, Important, Debug };
+
+    /// <summary>
     /// Provides general static methods and fields for UrgentContracts
     /// </summary>
     public static class Core
     {
+        public static List<ContractRule> ContractRules = new List<ContractRule>();
+
+        /// <summary>
+        /// Mod-wide random number generator
+        /// </summary>
+        public static System.Random rand = new System.Random();
+
         static bool loaded = false;
+
+        public static Dictionary<CelestialBody, double> BodyTravelTimes { get; set; }
+
+        /// <summary>
+        /// Multiply Hohmann transfer time by this for min travel time
+        /// </summary>
+        public static double HohmannMultiplier { get; set; } = 1.2;
+
+        /// <summary>
+        /// Current <see cref="LogLevel"/>: either Debug or Important
+        /// </summary>
+        public static LogLevel Level => UrgentContractsSettings.Instance.DebugMode ? LogLevel.Debug : LogLevel.Important;
 
         public static void LoadConfig()
         {
@@ -17,7 +53,7 @@ namespace UrgentContracts
             Log("Loading config...", LogLevel.Important);
 
             BodyTravelTimes = new Dictionary<CelestialBody, double>(FlightGlobals.Bodies.Count);
-            CelestialBody homePlanet = GetPlanet(Planetarium.fetch.Home);
+            CelestialBody homePlanet = Planetarium.fetch.Home.GetPlanet();
             foreach (CelestialBody body in FlightGlobals.Bodies)
             {
                 if (body.isHomeWorld)
@@ -26,7 +62,7 @@ namespace UrgentContracts
                     BodyTravelTimes[body] = homePlanet.orbit.period;
                 else if (body.HasParent(homePlanet))
                     BodyTravelTimes[body] = body.orbit.period / 5;
-                else BodyTravelTimes[body] = TimeBetweenLaunchWindows(homePlanet.orbit, GetPlanet(body).orbit) + HohmannMultiplier * HohmannTransferTime(homePlanet.orbit, GetPlanet(body).orbit);
+                else BodyTravelTimes[body] = TimeBetweenLaunchWindows(homePlanet.orbit, body.GetPlanet().orbit) + HohmannMultiplier * HohmannTransferTime(homePlanet.orbit, body.GetPlanet().orbit);
                 Core.Log("Travel time for " + body.name + " is " + KSPUtil.PrintDateDeltaCompact(BodyTravelTimes[body], true, false), LogLevel.Important);
             }
 
@@ -42,10 +78,10 @@ namespace UrgentContracts
 
                 foreach (ConfigNode n in cfg.GetNodes("TRAVEL_TIME"))
                 {
-                    CelestialBody body = FlightGlobals.GetBodyByName(GetString(n, "Name"));
+                    CelestialBody body = FlightGlobals.GetBodyByName(n.GetString("Name"));
                     if (body == null)
                         continue;
-                    BodyTravelTimes[body] = n.HasValue("TravelTime") ? GetDouble(n, "TravelTime") : (GetDouble(n, "TravelDays") * 21600);
+                    BodyTravelTimes[body] = n.HasValue("TravelTime") ? n.GetDouble("TravelTime") : (n.GetDouble("TravelDays") * 21600);
                     Core.Log("Overriding travel time for " + body.name + " to be " + KSPUtil.PrintDateDeltaCompact(BodyTravelTimes[body], true, false), LogLevel.Important);
                 }
             }
@@ -55,20 +91,63 @@ namespace UrgentContracts
             loaded = true;
         }
 
-        public static List<ContractRule> ContractRules = new List<ContractRule>();
+        /// <summary>
+        /// Returns target celestial body of the contract
+        /// Implementation based on code from Contract Parser by DMagic
+        /// </summary>
+        /// <param name="c"></param>
+        /// <returns></returns>
+        public static CelestialBody GetTargetBody(this Contract c)
+        {
+            Type t = c.GetType();
+            try
+            {
+                if (t == typeof(CollectScience))
+                    return ((CollectScience)c).TargetBody;
+                else if (t == typeof(PartTest))
+                    return typeof(PartTest).GetFields(BindingFlags.NonPublic | BindingFlags.Instance)[1].GetValue((PartTest)c) as CelestialBody;
+                else if (t == typeof(PlantFlag))
+                    return ((PlantFlag)c).TargetBody;
+                else if (t == typeof(RecoverAsset))
+                    return typeof(RecoverAsset).GetFields(BindingFlags.NonPublic | BindingFlags.Instance)[0].GetValue((RecoverAsset)c) as CelestialBody;
+                else if (t == typeof(GrandTour))
+                    return ((GrandTour)c).TargetBodies[((GrandTour)c).TargetBodies.Count - 1];
+                else if (t == typeof(ARMContract))
+                    return typeof(ARMContract).GetFields(BindingFlags.NonPublic | BindingFlags.Instance)[0].GetValue((ARMContract)c) as CelestialBody;
+                else if (t == typeof(BaseContract))
+                    return ((BaseContract)c).targetBody;
+                else if (t == typeof(ISRUContract))
+                    return ((ISRUContract)c).targetBody;
+                else if (t == typeof(SatelliteContract))
+                    return c.GetParameter<SpecificOrbitParameter>()?.TargetBody;
+                else if (t == typeof(StationContract))
+                    return ((StationContract)c).targetBody;
+                else if (t == typeof(SurveyContract))
+                    return ((SurveyContract)c).targetBody;
+                else if (t == typeof(TourismContract))
+                    return null;
+                else if (t == typeof(ExplorationContract))
+                    return typeof(ExplorationContract).GetFields(BindingFlags.NonPublic | BindingFlags.Instance)[1].GetValue((ExplorationContract)c) as CelestialBody;
+            }
+            catch (Exception e) { Core.Log("Exception " + e + " when detecting CelestialBody of contract '" + c.Title + "'.", LogLevel.Error); }
 
-        public static Dictionary<CelestialBody, double> BodyTravelTimes { get; set; }
+            // Uknown contract type => look for body name in the title and description
+            Core.Log("Couldn't detect CelestialBody from contract parameters, trying to find its name in the title (" + c.Title + ") or description.");
+            return FlightGlobals.Bodies.Find(b => new Regex("\\b" + b.name + "\\b").IsMatch(c.Title))
+                ?? FlightGlobals.Bodies.Find(b => new Regex("\\b" + b.name + "\\b").IsMatch(c.Description));
+        }
+
+        /// <summary>
+        /// Fetches travel time for current body from cache (or 0 if no b is null)
+        /// </summary>
+        /// <param name="b"></param>
+        /// <returns></returns>
+        public static double GetTravelTimeFromHome(this CelestialBody b) => b != null ? BodyTravelTimes[b] : 0;
 
         /// <summary>
         /// Max allowed difference between max and min deadlines (0.5 = 50% etc.)
         /// </summary>
         //public static double RandomFactor { get; set; } = 0.5;
-
-        /// <summary>
-        /// Multiply Hohmann transfer time by this for min travel time
-        /// </summary>
-        public static double HohmannMultiplier { get; set; } = 1.2;
-
         public static bool IsPlanet(CelestialBody body) => body?.orbit?.referenceBody == Sun.Instance.sun;
 
         /// <summary>
@@ -98,12 +177,12 @@ namespace UrgentContracts
         public static double HohmannTransferTime(Orbit o1, Orbit o2)
             => Math.PI * Math.Sqrt(Math.Pow(o1.radius + o2.radius, 3) / (8 * Planetarium.fetch.Sun.gravParameter));
 
-        public static CelestialBody GetPlanet(CelestialBody body)
+        public static CelestialBody GetPlanet(this CelestialBody body)
             => ((body == null) || IsPlanet(body)) ? body : GetPlanet(body?.orbit?.referenceBody);
 
-        public static string GetString(ConfigNode n, string key, string defaultValue = null) => n.HasValue(key) ? n.GetValue(key) : defaultValue;
+        public static string GetString(this ConfigNode n, string key, string defaultValue = null) => n.HasValue(key) ? n.GetValue(key) : defaultValue;
 
-        public static double GetDouble(ConfigNode n, string key, double defaultValue = 0)
+        public static double GetDouble(this ConfigNode n, string key, double defaultValue = 0)
         {
             double res;
             try { res = Double.Parse(n.GetValue(key)); }
@@ -111,7 +190,7 @@ namespace UrgentContracts
             return res;
         }
 
-        public static int GetInt(ConfigNode n, string key, int defaultValue = 0)
+        public static int GetInt(this ConfigNode n, string key, int defaultValue = 0)
         {
             int res;
             try { res = Int32.Parse(n.GetValue(key)); }
@@ -119,7 +198,7 @@ namespace UrgentContracts
             return res;
         }
 
-        public static bool GetBool(ConfigNode n, string key, bool defaultValue = false)
+        public static bool GetBool(this ConfigNode n, string key, bool defaultValue = false)
         {
             bool res;
             try { res = Boolean.Parse(n.GetValue(key)); }
@@ -182,27 +261,6 @@ namespace UrgentContracts
         }
 
         /// <summary>
-        /// Mod-wide random number generator
-        /// </summary>
-        public static System.Random rand = new System.Random();
-
-        /// <summary>
-        /// Log levels:
-        /// <list type="bullet">
-        /// <item><definition>None: do not log</definition></item>
-        /// <item><definition>Error: log only errors</definition></item>
-        /// <item><definition>Important: log only errors and important information</definition></item>
-        /// <item><definition>Debug: log all information</definition></item>
-        /// </list>
-        /// </summary>
-        public enum LogLevel { None, Error, Important, Debug };
-
-        /// <summary>
-        /// Current <see cref="LogLevel"/>: either Debug or Important
-        /// </summary>
-        public static LogLevel Level => UrgentContractsSettings.Instance.DebugMode ? LogLevel.Debug : LogLevel.Important;
-
-        /// <summary>
         /// Returns true if current logging allows logging of messages at messageLevel
         /// </summary>
         /// <param name="messageLevel"></param>
@@ -216,7 +274,7 @@ namespace UrgentContracts
         /// <param name="messageLevel"><see cref="LogLevel"/> of the entry</param>
         public static void Log(string message, LogLevel messageLevel = LogLevel.Debug)
         {
-            if (IsLogging(messageLevel) && (message.Length != 0))
+            if (IsLogging(messageLevel) && message.Length != 0)
                 Debug.Log("[UrgentContracts] " + (messageLevel == LogLevel.Error ? "ERROR: " : "") + message);
         }
     }
