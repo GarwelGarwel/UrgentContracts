@@ -10,7 +10,7 @@ namespace UrgentContracts
 
         public void Start()
         {
-            Core.Log("Start()");
+            Core.Log("Start");
             Core.LoadConfig();
             GameEvents.Contract.onOffered.Add(OnContractOffered);
         }
@@ -28,7 +28,7 @@ namespace UrgentContracts
 
         public void OnContractOffered(Contract c)
         {
-            Core.Log("OnContractOffered(" + c.GetType() + ")");
+            Core.Log($"OnContractOffered({c.GetType()})");
             LogContractInfo(c);
             ProcessContract(c);
         }
@@ -37,11 +37,11 @@ namespace UrgentContracts
         {
             if (!Core.IsLogging())
                 return;
-            Core.Log("Title: " + c.Title);
-            Core.Log("Type: " + c.GetType().Name);
-            Core.Log("State: " + c.ContractState);
-            Core.Log("Target body: " + (c.GetTargetBody()?.name ?? "N/A"));
-            Core.Log("Deadline: " + KSPUtil.PrintDateDeltaCompact(c.TimeDeadline, true, true));
+            Core.Log($"Title: {c.Title}");
+            Core.Log($"Type: {c.GetType().Name}");
+            Core.Log($"State: {c.ContractState}");
+            Core.Log($"Target body: {(c.GetTargetBody()?.name ?? "N/A")}");
+            Core.Log($"Deadline: {KSPUtil.PrintDateDeltaCompact(c.TimeDeadline, true, true)}");
         }
 
         void ProcessContract(Contract c)
@@ -57,7 +57,7 @@ namespace UrgentContracts
                 Core.Log("ContractSystem not yet loaded.");
                 return;
             }
-            Core.Log(ContractSystem.Instance.Contracts.Count + " total contracts.", LogLevel.Important);
+            Core.Log($"{ContractSystem.Instance.Contracts.Count} total contracts.", LogLevel.Important);
             for (int i = 0; i < ContractSystem.Instance.Contracts.Count; i++)
             {
                 Contract c = ContractSystem.Instance.Contracts[i];

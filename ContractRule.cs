@@ -8,22 +8,6 @@ namespace UrgentContracts
 {
     public class ContractRule
     {
-        public ContractRule(string type, double graceDays, double bodyTravelTimeMultiplier = 1)
-        {
-            AddTypes(type);
-            GracePeriod = graceDays * 21600;
-            TravelTimeMultiplier = bodyTravelTimeMultiplier;
-        }
-
-        public ContractRule(ConfigNode node)
-        {
-            foreach (string v in node.GetValues("Type"))
-                AddTypes(v);
-            Titles = new List<string>(node.GetValues("Title"));
-            GracePeriod = node.HasValue("GraceTime") ? node.GetDouble("GraceTime") : (node.GetDouble("GraceDays") * 21600);
-            TravelTimeMultiplier = node.GetDouble("TravelTimeMultiplier", 1);
-        }
-
         /// <summary>
         /// Type of the contract class
         /// </summary>
@@ -40,6 +24,22 @@ namespace UrgentContracts
         /// How much time is added to deadline based on body travel time (0 if no travel needed, 1 for one-way, 2 for return)
         /// </summary>
         public double TravelTimeMultiplier { get; set; } = 1;
+
+        public ContractRule(string type, double graceDays, double bodyTravelTimeMultiplier = 1)
+        {
+            AddTypes(type);
+            GracePeriod = graceDays * 21600;
+            TravelTimeMultiplier = bodyTravelTimeMultiplier;
+        }
+
+        public ContractRule(ConfigNode node)
+        {
+            foreach (string v in node.GetValues("Type"))
+                AddTypes(v);
+            Titles = new List<string>(node.GetValues("Title"));
+            GracePeriod = node.HasValue("GraceTime") ? node.GetDouble("GraceTime") : (node.GetDouble("GraceDays") * 21600);
+            TravelTimeMultiplier = node.GetDouble("TravelTimeMultiplier", 1);
+        }
 
         public void AddTypes(string types) => Types.AddRange(types.Split(", ".ToCharArray(), StringSplitOptions.RemoveEmptyEntries));
 
@@ -79,7 +79,7 @@ namespace UrgentContracts
                 if (d >= 21600 * 426)
                     m = 21600;
                 d = Math.Round(d / m) * m;
-                Core.Log("Deadline for " + c.GetType().Name + " (\"" + c.Title + "\") adjusted from " + KSPUtil.PrintDateDeltaCompact(c.TimeDeadline, true, false) + " to " + KSPUtil.PrintDateDeltaCompact(d, true, false), LogLevel.Important);
+                Core.Log($"Deadline for {c.GetType().Name} (\"{c.Title}\") adjusted from {KSPUtil.PrintDateDeltaCompact(c.TimeDeadline, true, false)} to {KSPUtil.PrintDateDeltaCompact(d, true, false)}.", LogLevel.Important);
                 c.TimeDeadline = d;
             }
             else Core.Log("Deadline is fine.");
@@ -96,7 +96,7 @@ namespace UrgentContracts
                 res += t;
                 needComma = true;
             }
-            res += " } GracePeriod = '" + KSPUtil.PrintDateDeltaCompact(GracePeriod, true, false) + "' TravelTimeMultiplier = " + TravelTimeMultiplier.ToString("N1");
+            res += $" }} GracePeriod = '{KSPUtil.PrintDateDeltaCompact(GracePeriod, true, false)}' TravelTimeMultiplier = {TravelTimeMultiplier:N1}";
             return res;
         }
     }

@@ -63,7 +63,7 @@ namespace UrgentContracts
                 else if (body.HasParent(homePlanet))
                     BodyTravelTimes[body] = body.orbit.period / 5;
                 else BodyTravelTimes[body] = TimeBetweenLaunchWindows(homePlanet.orbit, body.GetPlanet().orbit) + HohmannMultiplier * HohmannTransferTime(homePlanet.orbit, body.GetPlanet().orbit);
-                Core.Log("Travel time for " + body.name + " is " + KSPUtil.PrintDateDeltaCompact(BodyTravelTimes[body], true, false), LogLevel.Important);
+                Log($"Travel time for {body.name} is {KSPUtil.PrintDateDeltaCompact(BodyTravelTimes[body], true, false)}.", LogLevel.Important);
             }
 
             ConfigNode[] cfgArray = GameDatabase.Instance.GetConfigNodes("URGENT_CONTRACTS_CONFIG");
@@ -73,7 +73,7 @@ namespace UrgentContracts
                 {
                     ContractRule rule = new ContractRule(n);
                     ContractRules.Add(rule);
-                    Core.Log("Added contract from config file: " + rule, LogLevel.Important);
+                    Log($"Added contract from config file: {rule}", LogLevel.Important);
                 }
 
                 foreach (ConfigNode n in cfg.GetNodes("TRAVEL_TIME"))
@@ -82,7 +82,7 @@ namespace UrgentContracts
                     if (body == null)
                         continue;
                     BodyTravelTimes[body] = n.HasValue("TravelTime") ? n.GetDouble("TravelTime") : (n.GetDouble("TravelDays") * 21600);
-                    Core.Log("Overriding travel time for " + body.name + " to be " + KSPUtil.PrintDateDeltaCompact(BodyTravelTimes[body], true, false), LogLevel.Important);
+                    Log($"Overriding travel time for {body.name} to be {KSPUtil.PrintDateDeltaCompact(BodyTravelTimes[body], true, false)}.", LogLevel.Important);
                 }
             }
             if (cfgArray.Length == 0)
@@ -133,8 +133,8 @@ namespace UrgentContracts
 
             // Uknown contract type => look for body name in the title and description
             Core.Log("Couldn't detect CelestialBody from contract parameters, trying to find its name in the title (" + c.Title + ") or description.");
-            return FlightGlobals.Bodies.Find(b => new Regex("\\b" + b.name + "\\b").IsMatch(c.Title))
-                ?? FlightGlobals.Bodies.Find(b => new Regex("\\b" + b.name + "\\b").IsMatch(c.Description));
+            return FlightGlobals.Bodies.Find(b => new Regex($"\\b{b.name}\\b").IsMatch(c.Title))
+                ?? FlightGlobals.Bodies.Find(b => new Regex($"\\b{b.name}\\b").IsMatch(c.Description));
         }
 
         /// <summary>
@@ -185,7 +185,7 @@ namespace UrgentContracts
         public static double GetDouble(this ConfigNode n, string key, double defaultValue = 0)
         {
             double res;
-            try { res = Double.Parse(n.GetValue(key)); }
+            try { res = double.Parse(n.GetValue(key)); }
             catch (Exception) { res = defaultValue; }
             return res;
         }
@@ -193,7 +193,7 @@ namespace UrgentContracts
         public static int GetInt(this ConfigNode n, string key, int defaultValue = 0)
         {
             int res;
-            try { res = Int32.Parse(n.GetValue(key)); }
+            try { res = int.Parse(n.GetValue(key)); }
             catch (Exception) { res = defaultValue; }
             return res;
         }
@@ -201,7 +201,7 @@ namespace UrgentContracts
         public static bool GetBool(this ConfigNode n, string key, bool defaultValue = false)
         {
             bool res;
-            try { res = Boolean.Parse(n.GetValue(key)); }
+            try { res = bool.Parse(n.GetValue(key)); }
             catch (Exception) { res = defaultValue; }
             return res;
         }
@@ -275,7 +275,11 @@ namespace UrgentContracts
         public static void Log(string message, LogLevel messageLevel = LogLevel.Debug)
         {
             if (IsLogging(messageLevel) && message.Length != 0)
-                Debug.Log("[UrgentContracts] " + (messageLevel == LogLevel.Error ? "ERROR: " : "") + message);
+            {
+                if (messageLevel == LogLevel.Error)
+                    message = $"ERROR: {message}";
+                Debug.Log($"[UrgentContracts] {message}");
+            }
         }
     }
 }
